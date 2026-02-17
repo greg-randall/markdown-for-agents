@@ -16,3 +16,7 @@ Thumbs.db
 # PHP
 composer.phar
 *.log
+*.dist
+
+# Plugin Distribution
+*.zip
