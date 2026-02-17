@@ -328,10 +328,48 @@ function mfa_clean_html( string $html ): string {
     // Remove empty paragraphs.
     $html = preg_replace( '/<p>\s*<\/p>/i', '', $html );
 
+    // Strip syntax-highlighting spans from code blocks. Server-side
+    // highlighters (Chroma, Enlighter, SyntaxHighlighter Evolved) inject
+    // <span> tags that HtmlConverter preserves literally inside <pre>.
+    $html = mfa_clean_code_blocks( $html );
+
     /** Allow plugins to add their own cleanup rules. */
     $html = apply_filters( 'markdown_clean_html', $html );
 
     return $html;
+}
+
+/**
+ * Strip decorative <span> tags from inside <pre> blocks.
+ *
+ * Server-side syntax highlighters wrap tokens in spans for coloring.
+ * HtmlConverter does not strip tags inside <pre>/<code>, so these leak
+ * into the markdown output as raw HTML. This function removes them,
+ * keeping only the text content.
+ *
+ * @param string $html HTML content potentially containing highlighted code blocks.
+ * @return string HTML with code block spans removed.
+ */
+function mfa_clean_code_blocks( string $html ): string {
+    // Only process if there are <pre> blocks with spans inside.
+    if ( false === stripos( $html, '<pre' ) ) {
+        return $html;
+    }
+
+    return preg_replace_callback(
+        '/<pre\b[^>]*>.*?<\/pre>/si',
+        function ( $match ) {
+            $block = $match[0];
+            // Only bother if there are spans inside this pre block.
+            if ( false === stripos( $block, '<span' ) ) {
+                return $block;
+            }
+            // Strip all <span> open and close tags, keep content.
+            $block = preg_replace( '/<\/?span[^>]*>/i', '', $block );
+            return $block;
+        },
+        $html
+    );
 }
 
 /* --------------------------------------------------------------------------

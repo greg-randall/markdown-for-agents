@@ -21,3 +21,6 @@ composer.phar
 # Plugin Distribution
 *.zip
 markdown-for-agents/
+
+# Testing
+test-html-md/
