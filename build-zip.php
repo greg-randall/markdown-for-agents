@@ -15,6 +15,7 @@ $plugin_slug = 'markdown-for-agents';
 $include = [
     'markdown-for-agents.php',
     'readme.txt',
+    'composer.json',
     'includes/',
     'vendor/',
 ];
