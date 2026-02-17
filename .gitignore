@@ -20,3 +20,4 @@ composer.phar
 
 # Plugin Distribution
 *.zip
+markdown-for-agents/
