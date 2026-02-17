@@ -37,7 +37,9 @@ This plugin implements origin-level Markdown serving, similar to Cloudflare's ed
 
 ## Performance & Static Serving
 
-For maximum performance, you can configure your web server to serve the Markdown files directly from the cache directory, bypassing PHP entirely.
+Without any extra configuration, the plugin includes a "Fast-Path" that serves cached Markdown during PHP's `init` hook, before the main WordPress query runs. This alone cuts response time by about 10% compared to a full HTML page load.
+
+For maximum performance, you can add a web server rule to serve the cached `.md` files directly from disk, bypassing PHP entirely. This drops response times from ~0.97s to ~0.11s — an **88% reduction** — because the server handles it the same way it would serve an image or CSS file.
 
 ### Nginx Configuration
 ```nginx
@@ -48,11 +50,14 @@ location ~* ^/(.+)\.md$ {
 ```
 
 ### Apache (.htaccess)
+Add this before the WordPress rewrite rules:
 ```apache
 RewriteEngine On
 RewriteCond %{DOCUMENT_ROOT}/wp-content/uploads/mfa-cache/$1.md -f
 RewriteRule ^(.*)\.md$ /wp-content/uploads/mfa-cache/$1.md [L,T=text/markdown]
 ```
+
+The first request for any post still goes through PHP to generate and cache the Markdown. After that, all subsequent requests are served as static files.
 
 ## Developer Hooks (Customization)
 
@@ -82,6 +87,29 @@ add_filter( 'markdown_served_post_types', function ( $types ) {
 - **PHP:** 8.0+
 - **WordPress:** 6.0+
 - **Dependencies:** Managed via Composer (`league/html-to-markdown`, `symfony/yaml`).
+
+## Benchmarks
+
+Measured across 10 posts on a shared hosting environment (TTFB, 5 requests per cell averaged):
+
+| # | Post | HTML | MD (cold) | MD (cached) | Apache direct |
+|---|------|------|-----------|-------------|---------------|
+| 1 | initial-commit | 1.060s | 0.981s | 0.955s | 0.119s |
+| 2 | human-miles-per-gallon | 0.966s | 0.987s | 0.844s | 0.114s |
+| 3 | burning-man-2018 | 0.939s | 0.952s | 0.830s | 0.109s |
+| 4 | milky-way-over-penland | 0.958s | 0.917s | 0.873s | 0.107s |
+| 5 | scratch-made-pizza | 0.948s | 0.940s | 0.904s | 0.112s |
+| 6 | running-cable | 0.974s | 0.952s | 0.929s | 0.107s |
+| 7 | nishika-n8000 | 0.924s | 0.963s | 0.849s | 0.112s |
+| 8 | home-grown-corn | 0.941s | 0.980s | 0.823s | 0.107s |
+| 9 | title-case | 1.128s | 0.944s | 0.897s | 0.109s |
+| 10 | yet-another-bed | 0.873s | 0.895s | 0.812s | 0.115s |
+| | **Average** | **0.97s** | **0.95s** | **0.87s** | **0.11s** |
+
+- **HTML** — Standard WordPress page load
+- **MD (cold)** — First Markdown request, no cache (runs `the_content` filters + HTML-to-Markdown conversion)
+- **MD (cached)** — Subsequent requests served by the PHP Fast-Path from disk cache
+- **Apache direct** — Static `.md` file served by Apache rewrite rule, bypassing PHP entirely
 
 ## License
 
