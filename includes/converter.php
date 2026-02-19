@@ -44,13 +44,14 @@ function mfa_convert_post( WP_Post $post ): array {
         // File vanished or became unreadable — regenerate below.
     }
 
-    $result      = mfa_render_body( $post );
-    $body        = $result['markdown'];
-    $word_count  = $result['word_count'];
-    $tokens      = mfa_estimate_tokens( $word_count );
+    $result     = mfa_render_body( $post );
+    $title      = html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+    $body       = "# " . $title . "\n\n" . trim( $result['markdown'] );
+    $word_count = $result['word_count'] + str_word_count( $title );
+    $tokens     = mfa_estimate_tokens( $word_count );
     $frontmatter = mfa_build_frontmatter( $post, $body, $word_count, $tokens );
 
-    $markdown = $frontmatter . "\n" . trim( $body ) . "\n";
+    $markdown = $frontmatter . "\n" . $body . "\n";
 
     /** Allow plugins to modify the final output. */
     $markdown = apply_filters( 'markdown_output', $markdown, $post );
