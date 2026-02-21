@@ -329,6 +329,48 @@ add_action( 'wp_head', function (): void {
 } );
 
 /* --------------------------------------------------------------------------
+ * Discovery — send HTTP Link header for Markdown alternate
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Add an HTTP Link header advertising the Markdown alternate representation.
+ *
+ * This complements the <link rel="alternate"> tag in <head> for clients that
+ * only inspect headers (HEAD requests, some bots, tooling).
+ */
+add_action( 'send_headers', function (): void {
+    if ( is_admin() ) {
+        return;
+    }
+
+    // Only on normal HTML responses (not when we're serving Markdown).
+    if ( mfa_should_serve_markdown() ) {
+        return;
+    }
+
+    if ( ! is_singular() ) {
+        return;
+    }
+
+    $post = get_queried_object();
+    if ( ! $post instanceof WP_Post ) {
+        return;
+    }
+
+    $allowed = apply_filters( 'markdown_served_post_types', [ 'post', 'page' ] );
+    if ( ! in_array( $post->post_type, $allowed, true ) ) {
+        return;
+    }
+
+    $markdown_url = add_query_arg( 'format', 'markdown', get_permalink( $post ) );
+    // Append (don't replace) any existing Link headers.
+    header(
+        'Link: <' . esc_url_raw( $markdown_url ) . '>; rel="alternate"; type="text/markdown"',
+        false
+    );
+} );
+
+/* --------------------------------------------------------------------------
  * Cache invalidation
  * ---------------------------------------------------------------------- */
 
