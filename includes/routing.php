@@ -517,20 +517,16 @@ function botkibble_regen_throttled(): bool {
  * Get the preferred Markdown URL for a post, used for discovery links/headers.
  *
  * Defaults to the query-param endpoint (`?format=markdown`), but can be switched
- * to the `.md` suffix or Accept-header representation via filters.
+ * to the `.md` suffix via a filter.
  *
  * Modes:
  * - query  (default): https://example.com/post/?format=markdown
  * - suffix:           https://example.com/post.md
- * - accept:           https://example.com/post/  (representation via Accept: text/markdown)
- *
- * To override completely, use the `markdown_alternate_url` filter and return
- * an absolute URL string or an empty string to disable discovery output.
  */
 function mfa_get_markdown_alternate_url( WP_Post $post ): string {
     $mode = (string) apply_filters( 'markdown_alternate_url_mode', 'query', $post );
     $mode = strtolower( trim( $mode ) );
-    if ( ! in_array( $mode, [ 'query', 'suffix', 'accept' ], true ) ) {
+    if ( ! in_array( $mode, [ 'query', 'suffix' ], true ) ) {
         $mode = 'query';
     }
 
@@ -539,9 +535,7 @@ function mfa_get_markdown_alternate_url( WP_Post $post ): string {
         return '';
     }
 
-    if ( 'accept' === $mode ) {
-        $url = $permalink;
-    } elseif ( 'suffix' === $mode ) {
+    if ( 'suffix' === $mode ) {
         // Front page + `.md` is not reliably handled by rewrite rules ('.md' won't match),
         // so default to the query endpoint for the homepage.
         $path = wp_parse_url( $permalink, PHP_URL_PATH ) ?: '';
@@ -554,17 +548,6 @@ function mfa_get_markdown_alternate_url( WP_Post $post ): string {
         // query
         $url = add_query_arg( 'format', 'markdown', $permalink );
     }
-
-    /**
-     * Filter the final Markdown alternate URL used in discovery.
-     *
-     * Return an empty string to suppress the discovery link/header entirely.
-     *
-     * @param string  $url  The computed alternate URL.
-     * @param WP_Post $post The current post.
-     * @param string  $mode The selected mode: query|suffix|accept.
-     */
-    $url = (string) apply_filters( 'markdown_alternate_url', $url, $post, $mode );
 
     return trim( $url );
 }
