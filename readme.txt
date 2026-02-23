@@ -1,10 +1,10 @@
-=== Markdown for Agents ===
+=== Botkibble ===
 Contributors: gregrandall
 Tags: markdown, ai, agents, crawlers, api
 Requires at least: 6.0
 Tested up to: 6.9
-Requires PHP: 8.0
-Stable tag: 1.1.2
+Requires PHP: 8.2
+Stable tag: 1.2.0
 License: GPL-2.0-only
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,9 +12,9 @@ Serve published posts and pages as clean Markdown with YAML frontmatter — buil
 
 == Description ==
 
-Markdown for Agents converts any published post or page on your WordPress site to Markdown. It caches the output and serves it with `text/markdown` headers.
+Botkibble converts any published post or page on your WordPress site to Markdown. It caches the output and serves it with `text/markdown` headers.
 
-[GitHub Repository](https://github.com/greg-randall/markdown-for-agents)
+[GitHub Repository](https://github.com/greg-randall/botkibble)
 
 **Three ways to request Markdown:**
 
@@ -51,7 +51,7 @@ If you use Cloudflare, both share the same `Accept: text/markdown` header, `Cont
 
 == Performance & Static Offloading ==
 
-This plugin supports static file offloading by writing Markdown content to `/wp-content/uploads/mfa-cache/`. 
+This plugin supports static file offloading by writing Markdown content to `/wp-content/uploads/botkibble-cache/`. 
 
 === Nginx Configuration ===
 To bypass PHP entirely and have Nginx serve the files directly:
@@ -59,7 +59,7 @@ To bypass PHP entirely and have Nginx serve the files directly:
 `
 location ~* ^/(.+)\.md$ {
     default_type text/markdown;
-    try_files /wp-content/uploads/mfa-cache/$1.md /index.php?$args;
+    try_files /wp-content/uploads/botkibble-cache/$1.md /index.php?$args;
 }
 `
 
@@ -68,15 +68,15 @@ Add this to your `.htaccess` before the WordPress rules:
 
 `
 RewriteEngine On
-RewriteCond %{DOCUMENT_ROOT}/wp-content/uploads/mfa-cache/$1.md -f
-RewriteRule ^(.*)\.md$ /wp-content/uploads/mfa-cache/$1.md [L,T=text/markdown]
+RewriteCond %{DOCUMENT_ROOT}/wp-content/uploads/botkibble-cache/$1.md -f
+RewriteRule ^(.*)\.md$ /wp-content/uploads/botkibble-cache/$1.md [L,T=text/markdown]
 `
 
 Even without these rules, the plugin uses a "Fast-Path" that serves cached files from PHP before the main database query is executed.
 
 == Installation ==
 
-1. Upload the `markdown-for-agents` directory to `wp-content/plugins/`.
+1. Upload the `botkibble` directory to `wp-content/plugins/`.
 2. Run `composer install` inside the plugin directory to install dependencies.
 3. Activate the plugin through the **Plugins** menu in WordPress.
 4. That's it. No settings page needed.
@@ -91,9 +91,9 @@ Even without these rules, the plugin uses a "Fast-Path" that serves cached files
 
 = How do I add support for custom post types? =
 
-The plugin only serves posts and pages by default. To add a custom post type, use the `markdown_served_post_types` filter in your theme or a custom plugin:
+The plugin only serves posts and pages by default. To add a custom post type, use the `botkibble_served_post_types` filter in your theme or a custom plugin:
 
-    add_filter( 'markdown_served_post_types', function ( $types ) {
+    add_filter( 'botkibble_served_post_types', function ( $types ) {
         $types[] = 'docs';
         return $types;
     } );
@@ -102,18 +102,18 @@ Be careful — only add post types that contain public content. Do not expose po
 
 = How do I add custom fields to the frontmatter? =
 
-Use the `markdown_frontmatter` filter:
+Use the `botkibble_frontmatter` filter:
 
-    add_filter( 'markdown_frontmatter', function ( $data, $post ) {
+    add_filter( 'botkibble_frontmatter', function ( $data, $post ) {
         $data['excerpt'] = get_the_excerpt( $post );
         return $data;
     }, 10, 2 );
 
 = How do I change the Content-Signal header? =
 
-Use the `markdown_content_signal` filter:
+Use the `botkibble_content_signal` filter:
 
-    add_filter( 'markdown_content_signal', function ( $signal, $post ) {
+    add_filter( 'botkibble_content_signal', function ( $signal, $post ) {
         return 'ai-train=no, search=yes, ai-input=yes';
     }, 10, 2 );
 
@@ -121,25 +121,25 @@ Return an empty string to omit the header entirely.
 
 = Can I change the token count estimation? =
 
-Yes, use the `markdown_token_multiplier` filter. The default multiplier of `1.3` (word count × 1.3) comes from [Cloudflare's implementation](https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/):
+Yes, use the `botkibble_token_multiplier` filter. The default multiplier of `1.3` (word count × 1.3) comes from [Cloudflare's implementation](https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/):
 
-    add_filter( 'markdown_token_multiplier', function () {
+    add_filter( 'botkibble_token_multiplier', function () {
         return 1.5; // Adjusted for a different model's tokenizer
     } );
 
 = How do I adjust the rate limit? =
 
-Cache misses (when a post needs to be converted) are limited to 20 per minute globally. You can change this with the `mfa_regen_rate_limit` filter:
+Cache misses (when a post needs to be converted) are limited to 20 per minute globally. You can change this with the `botkibble_regen_rate_limit` filter:
 
-    add_filter( 'mfa_regen_rate_limit', function () {
+    add_filter( 'botkibble_regen_rate_limit', function () {
         return 50; 
     } );
 
 = Can I add custom HTML cleanup rules? =
 
-Yes, use the `markdown_clean_html` filter. This runs after the default cleanup and before conversion:
+Yes, use the `botkibble_clean_html` filter. This runs after the default cleanup and before conversion:
 
-    add_filter( 'markdown_clean_html', function ( $html ) {
+    add_filter( 'botkibble_clean_html', function ( $html ) {
         // Remove a plugin's wrapper divs
         $html = preg_replace( '/<div class="my-plugin-wrapper">(.*?)<\/div>/s', '$1', $html );
         return $html;
@@ -147,17 +147,17 @@ Yes, use the `markdown_clean_html` filter. This runs after the default cleanup a
 
 = How do I modify the final Markdown output? =
 
-Use the `markdown_output` filter to append or modify the text after conversion:
+Use the `botkibble_output` filter to append or modify the text after conversion:
 
-    add_filter( 'markdown_output', function ( $markdown, $post ) {
-        return $markdown . "\n\n---\nServed by Markdown for Agents";
+    add_filter( 'botkibble_output', function ( $markdown, $post ) {
+        return $markdown . "\n\n---\nServed by Botkibble";
     }, 10, 2 );
 
 = Can I disable the Accept header detection? =
 
-Yes, if you only want to serve Markdown via explicit URLs (.md or ?format=markdown), use the `markdown_enable_accept_header` filter:
+Yes, if you only want to serve Markdown via explicit URLs (.md or ?format=markdown), use the `botkibble_enable_accept_header` filter:
 
-    add_filter( 'markdown_enable_accept_header', '__return_false' );
+    add_filter( 'botkibble_enable_accept_header', '__return_false' );
 
 = Does the .md suffix work with all permalink structures? =
 
@@ -179,8 +179,14 @@ They return a `403 Forbidden` response. There's no point serving a password form
 
 == Changelog ==
 
+= 1.2.0 =
+* Rebranded to Botkibble to avoid naming ambiguity.
+* Prefixed all functions, filters, and constants with botkibble_ for better compatibility.
+* Updated symfony/yaml to 7.4.1 (Requires PHP 8.2).
+* Corrected all internal references and documentation.
+
 = 1.1.2 =
-* Fixed routing issues for posts by implementing a custom mfa_path resolver.
+* Fixed routing issues for posts by implementing a custom botkibble_path resolver.
 * Disabled canonical redirects for .md URLs to prevent 301 trailing slash loops.
 * Added automatic version-based rewrite rule flushing.
 

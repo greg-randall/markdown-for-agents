@@ -4,16 +4,16 @@
  *
  * Usage: php build-zip.php
  *
- * Produces: markdown-for-agents.zip in the current directory,
- * containing a markdown-for-agents/ folder ready to install via
+ * Produces: botkibble.zip in the current directory,
+ * containing a botkibble/ folder ready to install via
  * WordPress > Plugins > Add New > Upload Plugin.
  */
 
-$plugin_slug = 'markdown-for-agents';
+$plugin_slug = 'botkibble';
 
 // Files and directories to include (relative to this script).
 $include = [
-    'markdown-for-agents.php',
+    'botkibble.php',
     'readme.txt',
     'composer.json',
     'includes/',

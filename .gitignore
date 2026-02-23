@@ -20,7 +20,8 @@ composer.phar
 
 # Plugin Distribution
 *.zip
-markdown-for-agents/
+botkibble/
+botkibble-cache/
 
 # Testing
 test-html-md/

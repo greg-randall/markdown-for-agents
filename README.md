@@ -1,10 +1,10 @@
-# Markdown for Agents
+# Botkibble
 
 [![WordPress Version](https://img.shields.io/badge/WordPress-6.0%2B-blue.svg)](https://wordpress.org/download/)
-[![PHP Version](https://img.shields.io/badge/PHP-8.0%2B-8892bf.svg)](https://www.php.net/downloads)
+[![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-8892bf.svg)](https://www.php.net/downloads)
 [![License](https://img.shields.io/badge/License-GPL--2.0-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 
-**Markdown for Agents** is a hardened WordPress plugin that serves your published posts and pages as clean Markdown with YAML frontmatter. It is optimized for AI agents, LLMs, and high-performance crawlers.
+**Botkibble** is a hardened WordPress plugin that serves your published posts and pages as clean Markdown with YAML frontmatter. It is optimized for AI agents, LLMs, and high-performance crawlers.
 
 ## Why Markdown?
 
@@ -21,7 +21,7 @@ This plugin implements origin-level Markdown serving, similar to Cloudflare's ed
 - **Rich YAML Frontmatter:** Includes title, date, categories, tags, `word_count`, `char_count`, and an estimated `tokens` count.
 - **High-Performance Caching:** 
   - **Fast-Path Serving:** Bypasses the main WordPress query and template redirect for cached content.
-  - **Static Offloading:** Caches Markdown as physical files in `wp-content/uploads/mfa-cache/`.
+  - **Static Offloading:** Caches Markdown as physical files in `wp-content/uploads/botkibble-cache/`.
 - **SEO & Security:**
   - Sends `X-Robots-Tag: noindex` to prevent Markdown versions from appearing in search results.
   - Sends `Link: <url>; rel="canonical"` to point search engines back to the HTML version.
@@ -30,7 +30,7 @@ This plugin implements origin-level Markdown serving, similar to Cloudflare's ed
 
 ## Installation
 
-1. Upload the `markdown-for-agents` directory to your `wp-content/plugins/` directory.
+1. Upload the `botkibble` directory to your `wp-content/plugins/` directory.
 2. Run `composer install` inside the plugin directory to install dependencies (`league/html-to-markdown` and `symfony/yaml`).
 3. Activate the plugin through the **Plugins** menu in WordPress.
 4. (Optional) Configure Nginx or Apache to serve the static cache files directly (see Performance section).
@@ -45,7 +45,7 @@ For maximum performance, you can add a web server rule to serve the cached `.md`
 ```nginx
 location ~* ^/(.+)\.md$ {
     default_type text/markdown;
-    try_files /wp-content/uploads/mfa-cache/$1.md /index.php?$args;
+    try_files /wp-content/uploads/botkibble-cache/$1.md /index.php?$args;
 }
 ```
 
@@ -53,8 +53,8 @@ location ~* ^/(.+)\.md$ {
 Add this before the WordPress rewrite rules:
 ```apache
 RewriteEngine On
-RewriteCond %{DOCUMENT_ROOT}/wp-content/uploads/mfa-cache/$1.md -f
-RewriteRule ^(.*)\.md$ /wp-content/uploads/mfa-cache/$1.md [L,T=text/markdown]
+RewriteCond %{DOCUMENT_ROOT}/wp-content/uploads/botkibble-cache/$1.md -f
+RewriteRule ^(.*)\.md$ /wp-content/uploads/botkibble-cache/$1.md [L,T=text/markdown]
 ```
 
 The first request for any post still goes through PHP to generate and cache the Markdown. After that, all subsequent requests are served as static files.
@@ -65,18 +65,18 @@ The plugin is highly extensible via WordPress filters:
 
 | Filter | Purpose |
 | :--- | :--- |
-| `markdown_served_post_types` | Add custom post types (e.g., `docs`, `product`). |
-| `markdown_frontmatter` | Add or remove fields in the YAML block. |
-| `markdown_clean_html` | Clean up HTML (remove specific divs/styles) before conversion. |
-| `markdown_output` | Modify the final Markdown string before it's cached/served. |
-| `markdown_token_multiplier` | Adjust the word-to-token estimation (default `1.3`). |
-| `mfa_regen_rate_limit` | Change the global regeneration rate limit (default `20/min`). |
-| `markdown_content_signal` | Customize the `Content-Signal` header. |
-| `markdown_enable_accept_header` | Toggle `Accept: text/markdown` detection. |
+| `botkibble_served_post_types` | Add custom post types (e.g., `docs`, `product`). |
+| `botkibble_frontmatter` | Add or remove fields in the YAML block. |
+| `botkibble_clean_html` | Clean up HTML (remove specific divs/styles) before conversion. |
+| `botkibble_output` | Modify the final Markdown string before it's cached/served. |
+| `botkibble_token_multiplier` | Adjust the word-to-token estimation (default `1.3`). |
+| `botkibble_regen_rate_limit` | Change the global regeneration rate limit (default `20/min`). |
+| `botkibble_content_signal` | Customize the `Content-Signal` header. |
+| `botkibble_enable_accept_header` | Toggle `Accept: text/markdown` detection. |
 
 ### Example: Adding Custom Post Types
 ```php
-add_filter( 'markdown_served_post_types', function ( $types ) {
+add_filter( 'botkibble_served_post_types', function ( $types ) {
     $types[] = 'knowledge_base';
     return $types;
 } );
@@ -84,7 +84,7 @@ add_filter( 'markdown_served_post_types', function ( $types ) {
 
 ## Requirements
 
-- **PHP:** 8.0+
+- **PHP:** 8.2+
 - **WordPress:** 6.0+
 - **Dependencies:** Managed via Composer (`league/html-to-markdown`, `symfony/yaml`).
 

@@ -24,9 +24,9 @@ use Symfony\Component\Yaml\Yaml;
  * @param WP_Post $post The post to convert.
  * @return array{ markdown: string, tokens: int }
  */
-function mfa_convert_post( WP_Post $post ): array {
-    $file_path = mfa_get_cache_path( $post );
-    $meta_path = mfa_get_meta_path( $file_path );
+function botkibble_convert_post( WP_Post $post ): array {
+    $file_path = botkibble_get_cache_path( $post );
+    $meta_path = botkibble_get_meta_path( $file_path );
 
     // Try the cache — handle the file vanishing between exists/filemtime and read.
     // Both filemtime() and strtotime() return UTC unix timestamps. Appending +00:00
@@ -35,7 +35,7 @@ function mfa_convert_post( WP_Post $post ): array {
     if ( file_exists( $file_path ) && filemtime( $file_path ) >= $post_modified_ts ) {
         $cached = @file_get_contents( $file_path );
         if ( false !== $cached ) {
-            $meta = mfa_read_meta( $meta_path );
+            $meta = botkibble_read_meta( $meta_path );
             return [
                 'markdown' => $cached,
                 'tokens'   => (int) ( $meta['tokens'] ?? 0 ),
@@ -44,35 +44,35 @@ function mfa_convert_post( WP_Post $post ): array {
         // File vanished or became unreadable — regenerate below.
     }
 
-    $result     = mfa_render_body( $post );
+    $result     = botkibble_render_body( $post );
     $title      = html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
     $body       = "# " . $title . "\n\n" . trim( $result['markdown'] );
     $word_count = $result['word_count'] + str_word_count( $title );
-    $tokens     = mfa_estimate_tokens( $word_count );
-    $frontmatter = mfa_build_frontmatter( $post, $body, $word_count, $tokens );
+    $tokens     = botkibble_estimate_tokens( $word_count );
+    $frontmatter = botkibble_build_frontmatter( $post, $body, $word_count, $tokens );
 
     $markdown = $frontmatter . "\n" . $body . "\n";
 
     /** Allow plugins to modify the final output. */
-    $markdown = apply_filters( 'markdown_output', $markdown, $post );
+    $markdown = apply_filters( 'botkibble_output', $markdown, $post );
 
     // Ensure the directory exists. Only write protection files on creation.
     $cache_dir = dirname( $file_path );
     if ( ! is_dir( $cache_dir ) ) {
         wp_mkdir_p( $cache_dir );
-        mfa_protect_directory( $cache_dir );
+        botkibble_protect_directory( $cache_dir );
     }
 
     // Write cache files. If writes fail (disk full, permissions), log it but
     // still return the dynamically generated content.
     if ( false === @file_put_contents( $file_path, $markdown, LOCK_EX ) ) {
-        mfa_log( 'failed to write cache file: ' . $file_path );
+        botkibble_log( 'failed to write cache file: ' . $file_path );
     } else {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_touch -- no WP equivalent; sets mtime for cache freshness.
         touch( $file_path, $post_modified_ts );
     }
 
-    mfa_write_meta( $meta_path, [
+    botkibble_write_meta( $meta_path, [
         'post_id' => $post->ID,
         'type'    => $post->post_type,
         'tokens'  => $tokens,
@@ -89,12 +89,12 @@ function mfa_convert_post( WP_Post $post ): array {
  * Get the absolute path to the static cache file for a given post.
  *
  * @param WP_Post $post The post to get the cache path for.
- * @return string Absolute filesystem path (e.g. /wp-content/uploads/mfa-cache/my-post.md).
+ * @return string Absolute filesystem path (e.g. /wp-content/uploads/botkibble-cache/my-post.md).
  */
-function mfa_get_cache_path( WP_Post $post ): string {
+function botkibble_get_cache_path( WP_Post $post ): string {
     $upload_dir = wp_upload_dir();
-    $base_dir   = $upload_dir['basedir'] . '/mfa-cache';
-    $uri        = mfa_get_post_uri( $post );
+    $base_dir   = $upload_dir['basedir'] . '/botkibble-cache';
+    $uri        = botkibble_get_post_uri( $post );
     
     return $base_dir . '/' . ltrim( $uri, '/' ) . '.md';
 }
@@ -105,7 +105,7 @@ function mfa_get_cache_path( WP_Post $post ): string {
  * @param string $md_path Absolute path to the .md cache file.
  * @return string Corresponding .meta.json path.
  */
-function mfa_get_meta_path( string $md_path ): string {
+function botkibble_get_meta_path( string $md_path ): string {
     return preg_replace( '/\.md$/', '.meta.json', $md_path );
 }
 
@@ -115,7 +115,7 @@ function mfa_get_meta_path( string $md_path ): string {
  * @param string $meta_path Absolute path to the .meta.json file.
  * @return array{ post_id?: int, type?: string, tokens?: int, length?: int }
  */
-function mfa_read_meta( string $meta_path ): array {
+function botkibble_read_meta( string $meta_path ): array {
     if ( ! file_exists( $meta_path ) ) {
         return [];
     }
@@ -133,9 +133,9 @@ function mfa_read_meta( string $meta_path ): array {
  * @param string $meta_path Absolute path to the .meta.json file.
  * @param array  $data      Associative array of metadata to encode as JSON.
  */
-function mfa_write_meta( string $meta_path, array $data ): void {
+function botkibble_write_meta( string $meta_path, array $data ): void {
     if ( false === @file_put_contents( $meta_path, json_encode( $data, JSON_UNESCAPED_SLASHES ), LOCK_EX ) ) {
-        mfa_log( 'failed to write meta file: ' . $meta_path );
+        botkibble_log( 'failed to write meta file: ' . $meta_path );
     }
 }
 
@@ -143,11 +143,11 @@ function mfa_write_meta( string $meta_path, array $data ): void {
  * Log a message to the PHP error log. Always logs — cache failures
  * on production are operational issues, not debug noise.
  *
- * @param string $message The message to log (prefixed with "Markdown for Agents: ").
+ * @param string $message The message to log (prefixed with "Botkibble: ").
  */
-function mfa_log( string $message ): void {
+function botkibble_log( string $message ): void {
     // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- intentional operational logging.
-    error_log( 'Markdown for Agents: ' . $message );
+    error_log( 'Botkibble: ' . $message );
 }
 
 /**
@@ -159,7 +159,7 @@ function mfa_log( string $message ): void {
  *
  * @param string $dir Absolute path to the directory to protect.
  */
-function mfa_protect_directory( string $dir ): void {
+function botkibble_protect_directory( string $dir ): void {
     // Silence directory listing on all web servers.
     $index_path = $dir . '/index.php';
     if ( ! file_exists( $index_path ) ) {
@@ -192,7 +192,7 @@ function mfa_protect_directory( string $dir ): void {
  * @param WP_Post $post The post to get the URI for.
  * @return string Relative path without leading/trailing slashes (e.g. "my-post" or "parent/child").
  */
-function mfa_get_post_uri( WP_Post $post ): string {
+function botkibble_get_post_uri( WP_Post $post ): string {
     $permalink = get_permalink( $post );
     if ( ! $permalink ) {
         return '';
@@ -221,7 +221,7 @@ function mfa_get_post_uri( WP_Post $post ): string {
  * Build YAML frontmatter for a post's Markdown output.
  *
  * Includes title, date, type, content metrics, and taxonomy terms.
- * Filterable via the 'markdown_frontmatter' hook.
+ * Filterable via the 'botkibble_frontmatter' hook.
  *
  * @param WP_Post $post       The post to build frontmatter for.
  * @param string  $body       The converted Markdown body (used for char_count).
@@ -229,7 +229,7 @@ function mfa_get_post_uri( WP_Post $post ): string {
  * @param int     $tokens     Pre-computed estimated token count.
  * @return string Complete YAML frontmatter block including --- delimiters.
  */
-function mfa_build_frontmatter( WP_Post $post, string $body = '', int $word_count = 0, int $tokens = 0 ): string {
+function botkibble_build_frontmatter( WP_Post $post, string $body = '', int $word_count = 0, int $tokens = 0 ): string {
     $data = [
         'title' => html_entity_decode( get_the_title( $post ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
         'date'  => get_the_date( 'c', $post ),
@@ -256,9 +256,9 @@ function mfa_build_frontmatter( WP_Post $post, string $body = '', int $word_coun
     }
 
     /** Allow plugins to add or remove frontmatter fields. */
-    $data = apply_filters( 'markdown_frontmatter', $data, $post );
+    $data = apply_filters( 'botkibble_frontmatter', $data, $post );
 
-    return mfa_encode_yaml_frontmatter( $data );
+    return botkibble_encode_yaml_frontmatter( $data );
 }
 
 /* --------------------------------------------------------------------------
@@ -274,7 +274,7 @@ function mfa_build_frontmatter( WP_Post $post, string $body = '', int $word_coun
  * @param WP_Post $post The post to render.
  * @return array{ markdown: string, word_count: int }
  */
-function mfa_render_body( WP_Post $post ): array {
+function botkibble_render_body( WP_Post $post ): array {
     // Set up global post state so the_content filters behave normally.
     $previous_post = $GLOBALS['post'] ?? null;
     $GLOBALS['post'] = $post;
@@ -287,7 +287,7 @@ function mfa_render_body( WP_Post $post ): array {
     $GLOBALS['post'] = $previous_post;
     wp_reset_postdata();
 
-    $html = mfa_clean_html( $html );
+    $html = botkibble_clean_html( $html );
 
     // Count words from plain text before markdown conversion.
     $word_count = str_word_count( wp_strip_all_tags( $html ) );
@@ -314,12 +314,12 @@ function mfa_render_body( WP_Post $post ): array {
  * Clean rendered HTML before Markdown conversion.
  *
  * Strips shortcodes, inline styles, and empty paragraphs. Filterable
- * via the 'markdown_clean_html' hook for plugin-specific cleanup.
+ * via the 'botkibble_clean_html' hook for plugin-specific cleanup.
  *
  * @param string $html The rendered post HTML from the_content.
  * @return string Cleaned HTML ready for the Markdown converter.
  */
-function mfa_clean_html( string $html ): string {
+function botkibble_clean_html( string $html ): string {
     // Use native WP function to remove shortcodes reliably.
     $html = strip_shortcodes( $html );
 
@@ -332,10 +332,10 @@ function mfa_clean_html( string $html ): string {
     // Strip syntax-highlighting spans from code blocks. Server-side
     // highlighters (Chroma, Enlighter, SyntaxHighlighter Evolved) inject
     // <span> tags that HtmlConverter preserves literally inside <pre>.
-    $html = mfa_clean_code_blocks( $html );
+    $html = botkibble_clean_code_blocks( $html );
 
     /** Allow plugins to add their own cleanup rules. */
-    $html = apply_filters( 'markdown_clean_html', $html );
+    $html = apply_filters( 'botkibble_clean_html', $html );
 
     return $html;
 }
@@ -351,7 +351,7 @@ function mfa_clean_html( string $html ): string {
  * @param string $html HTML content potentially containing highlighted code blocks.
  * @return string HTML with code block spans removed.
  */
-function mfa_clean_code_blocks( string $html ): string {
+function botkibble_clean_code_blocks( string $html ): string {
     // Only process if there are <pre> blocks with spans inside.
     if ( false === stripos( $html, '<pre' ) ) {
         return $html;
@@ -383,7 +383,7 @@ function mfa_clean_code_blocks( string $html ): string {
  * @param array $data Key-value pairs to encode.
  * @return string YAML wrapped in --- delimiters, or empty frontmatter if $data is empty.
  */
-function mfa_encode_yaml_frontmatter( array $data ): string {
+function botkibble_encode_yaml_frontmatter( array $data ): string {
     if ( empty( $data ) ) {
         return "---\n---\n";
     }

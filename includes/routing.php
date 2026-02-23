@@ -41,7 +41,7 @@ add_action( 'init', function (): void {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public API, no state change.
     $is_query_param = ( isset( $_GET['format'] ) && 'markdown' === sanitize_text_field( wp_unslash( $_GET['format'] ) ) );
     $is_accept      = (
-        apply_filters( 'markdown_enable_accept_header', true )
+        apply_filters( 'botkibble_enable_accept_header', true )
         && isset( $_SERVER['HTTP_ACCEPT'] )
         && str_contains( sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT'] ) ), 'text/markdown' )
     );
@@ -61,14 +61,14 @@ add_action( 'init', function (): void {
     }
 
     // Sanitize the URI into a safe, normalized cache path.
-    $safe_slug = mfa_sanitize_cache_slug( $clean_uri );
+    $safe_slug = botkibble_sanitize_cache_slug( $clean_uri );
     if ( '' === $safe_slug ) {
         return;
     }
 
     // Construct the expected cache path and verify containment.
     $upload_dir = wp_upload_dir();
-    $cache_base = $upload_dir['basedir'] . '/mfa-cache';
+    $cache_base = $upload_dir['basedir'] . '/botkibble-cache';
     $file_path  = $cache_base . '/' . $safe_slug . '.md';
 
     // Belt-and-suspenders: verify the final path is inside the cache directory.
@@ -82,8 +82,8 @@ add_action( 'init', function (): void {
     }
 
     // Read the lightweight sidecar meta — no YAML parsing, no markdown loading.
-    $meta_path = mfa_get_meta_path( $file_path );
-    $meta      = mfa_read_meta( $meta_path );
+    $meta_path = botkibble_get_meta_path( $file_path );
+    $meta      = botkibble_read_meta( $meta_path );
 
     if ( empty( $meta ) ) {
         // No sidecar yet (pre-upgrade cache file). Let the slow path regenerate it.
@@ -91,7 +91,7 @@ add_action( 'init', function (): void {
     }
 
     // Security validation: check post type is allowed.
-    $allowed = apply_filters( 'markdown_served_post_types', [ 'post', 'page' ] );
+    $allowed = apply_filters( 'botkibble_served_post_types', [ 'post', 'page' ] );
     $cached_type = (string) ( $meta['type'] ?? '' );
     if ( $cached_type && ! in_array( $cached_type, $allowed, true ) ) {
         return;
@@ -135,7 +135,7 @@ add_action( 'init', function (): void {
     header( 'X-Robots-Tag: noindex' );
     $canonical = ( '_front-page' === $safe_slug ) ? home_url( '/' ) : home_url( $safe_slug . '/' );
     header( 'Link: <' . esc_url( $canonical ) . '>; rel="canonical"' );
-    mfa_send_content_signal_header();
+    botkibble_send_content_signal_header();
 
     // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- serving text/markdown, not HTML.
     echo $markdown;
@@ -147,19 +147,19 @@ add_action( 'init', function (): void {
  * ---------------------------------------------------------------------- */
 
 /** Register the custom rewrite rule. */
-function mfa_register_rewrite_rule(): void {
+function botkibble_register_rewrite_rule(): void {
     add_rewrite_rule(
         '(.+)\.md/?$',
-        'index.php?mfa_path=$matches[1]&mfa_format=markdown',
+        'index.php?botkibble_path=$matches[1]&botkibble_format=markdown',
         'top'
     );
 }
-add_action( 'init', 'mfa_register_rewrite_rule' );
+add_action( 'init', 'botkibble_register_rewrite_rule' );
 
 /** Disable canonical redirection for Markdown requests to prevent .md/ redirects. */
 add_filter( 'redirect_canonical', function ( $redirect_url ) {
     // Check both the query var AND the raw URI
-    if ( 'markdown' === get_query_var( 'mfa_format' ) ) {
+    if ( 'markdown' === get_query_var( 'botkibble_format' ) ) {
         return false;
     }
     $uri = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) );
@@ -171,21 +171,21 @@ add_filter( 'redirect_canonical', function ( $redirect_url ) {
 
 /** Register custom query variables. */
 add_filter( 'query_vars', function ( array $vars ): array {
-    $vars[] = 'mfa_format';
-    $vars[] = 'mfa_path';
+    $vars[] = 'botkibble_format';
+    $vars[] = 'botkibble_path';
     return $vars;
 } );
 
 /** 
- * Resolve the mfa_path into a post object.
+ * Resolve the botkibble_path into a post object.
  */
 add_filter( 'request', function ( array $query_vars ): array {
-    if ( empty( $query_vars['mfa_path'] ) ) {
+    if ( empty( $query_vars['botkibble_path'] ) ) {
         return $query_vars;
     }
 
-    $path    = trim( $query_vars['mfa_path'], '/' );
-    $allowed = apply_filters( 'markdown_served_post_types', [ 'post', 'page' ] );
+    $path    = trim( $query_vars['botkibble_path'], '/' );
+    $allowed = apply_filters( 'botkibble_served_post_types', [ 'post', 'page' ] );
     
     // Try to resolve the path to a post ID.
     // We try both with and without a trailing slash to satisfy url_to_postid.
@@ -230,7 +230,7 @@ add_filter( 'request', function ( array $query_vars ): array {
     }
 
     // All checks passed — tell WP to load this specific post.
-    unset( $query_vars['mfa_path'] );
+    unset( $query_vars['botkibble_path'] );
     $query_vars['p']         = $post_id;
     $query_vars['post_type'] = $post->post_type;
 
@@ -242,7 +242,7 @@ add_filter( 'request', function ( array $query_vars ): array {
  * ---------------------------------------------------------------------- */
 
 add_action( 'template_redirect', function (): void {
-    if ( ! mfa_should_serve_markdown() ) {
+    if ( ! botkibble_should_serve_markdown() ) {
         return;
     }
 
@@ -252,7 +252,7 @@ add_action( 'template_redirect', function (): void {
         return;
     }
 
-    $allowed = apply_filters( 'markdown_served_post_types', [ 'post', 'page' ] );
+    $allowed = apply_filters( 'botkibble_served_post_types', [ 'post', 'page' ] );
 
     if ( ! in_array( $post->post_type, $allowed, true ) ) {
         return;
@@ -274,14 +274,14 @@ add_action( 'template_redirect', function (): void {
 
     // Rate-limit cache miss regeneration. Conversion is expensive (the_content
     // filters + HTML-to-Markdown). Cap at 20 regenerations per minute globally.
-    if ( mfa_regen_throttled() ) {
+    if ( botkibble_regen_throttled() ) {
         status_header( 429 );
         header( 'Retry-After: 60' );
         echo 'Too many requests. Try again later.';
         exit;
     }
 
-    $result   = mfa_convert_post( $post );
+    $result   = botkibble_convert_post( $post );
     $markdown = $result['markdown'];
     $tokens   = $result['tokens'];
 
@@ -293,7 +293,7 @@ add_action( 'template_redirect', function (): void {
     header( 'X-Markdown-Tokens: ' . $tokens );
     header( 'X-Robots-Tag: noindex' );
     header( 'Link: <' . esc_url( get_permalink( $post ) ) . '>; rel="canonical"' );
-    mfa_send_content_signal_header( $post );
+    botkibble_send_content_signal_header( $post );
 
     // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- serving text/markdown, not HTML.
     echo $markdown;
@@ -315,7 +315,7 @@ add_action( 'wp_head', function (): void {
         return;
     }
 
-    $allowed = apply_filters( 'markdown_served_post_types', [ 'post', 'page' ] );
+    $allowed = apply_filters( 'botkibble_served_post_types', [ 'post', 'page' ] );
 
     if ( ! in_array( $post->post_type, $allowed, true ) ) {
         return;
@@ -332,15 +332,15 @@ add_action( 'wp_head', function (): void {
  * Cache invalidation
  * ---------------------------------------------------------------------- */
 
-add_action( 'save_post', 'mfa_invalidate_cache' );
-add_action( 'before_delete_post', 'mfa_invalidate_cache' );
+add_action( 'save_post', 'botkibble_invalidate_cache' );
+add_action( 'before_delete_post', 'botkibble_invalidate_cache' );
 
 /** Invalidate front-page cache when the static front page setting changes. */
 add_action( 'update_option_page_on_front', function ( $old_value, $new_value ): void {
     $upload_dir = wp_upload_dir();
-    $cache_base = $upload_dir['basedir'] . '/mfa-cache';
+    $cache_base = $upload_dir['basedir'] . '/botkibble-cache';
     $md_path    = $cache_base . '/_front-page.md';
-    mfa_delete_cache_files( $md_path );
+    botkibble_delete_cache_files( $md_path );
 }, 10, 2 );
 
 /**
@@ -350,19 +350,19 @@ add_action( 'update_option_page_on_front', function ( $old_value, $new_value ): 
  *
  * @param int $post_id The post ID being saved or deleted.
  */
-function mfa_invalidate_cache( int $post_id ): void {
+function botkibble_invalidate_cache( int $post_id ): void {
     $post = get_post( $post_id );
     if ( ! $post ) {
         return;
     }
 
-    mfa_delete_cache_files( mfa_get_cache_path( $post ) );
+    botkibble_delete_cache_files( botkibble_get_cache_path( $post ) );
 
     // Hierarchical invalidation for pages.
     if ( is_post_type_hierarchical( $post->post_type ) ) {
         $children = get_pages( [ 'child_of' => $post_id, 'post_type' => $post->post_type ] );
         foreach ( $children as $child ) {
-            mfa_delete_cache_files( mfa_get_cache_path( $child ) );
+            botkibble_delete_cache_files( botkibble_get_cache_path( $child ) );
         }
     }
 }
@@ -375,9 +375,9 @@ function mfa_invalidate_cache( int $post_id ): void {
  *
  * @param string $md_path Absolute path to the .md cache file.
  */
-function mfa_delete_cache_files( string $md_path ): void {
-    mfa_safe_unlink( $md_path );
-    mfa_safe_unlink( mfa_get_meta_path( $md_path ) );
+function botkibble_delete_cache_files( string $md_path ): void {
+    botkibble_safe_unlink( $md_path );
+    botkibble_safe_unlink( botkibble_get_meta_path( $md_path ) );
 }
 
 /**
@@ -385,7 +385,7 @@ function mfa_delete_cache_files( string $md_path ): void {
  *
  * @param string $path Absolute path to the file to delete.
  */
-function mfa_safe_unlink( string $path ): void {
+function botkibble_safe_unlink( string $path ): void {
     if ( ! file_exists( $path ) ) {
         return;
     }
@@ -395,7 +395,7 @@ function mfa_safe_unlink( string $path ): void {
     }
     // Unlink failed — truncate so the file is empty/unusable.
     @file_put_contents( $path, '', LOCK_EX );
-    mfa_log( 'failed to delete cache file: ' . $path );
+    botkibble_log( 'failed to delete cache file: ' . $path );
 }
 
 /* --------------------------------------------------------------------------
@@ -406,11 +406,11 @@ function mfa_safe_unlink( string $path ): void {
  * Detect whether the current request is asking for Markdown output.
  *
  * Checks three access methods: ?format=markdown query param, .md suffix
- * (via mfa_format rewrite query var), and Accept: text/markdown header.
+ * (via botkibble_format rewrite query var), and Accept: text/markdown header.
  *
  * @return bool True if the response should be served as Markdown.
  */
-function mfa_should_serve_markdown(): bool {
+function botkibble_should_serve_markdown(): bool {
     // 1. Query parameter: ?format=markdown
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- public API, no state change.
     if ( isset( $_GET['format'] ) && 'markdown' === sanitize_text_field( wp_unslash( $_GET['format'] ) ) ) {
@@ -418,12 +418,12 @@ function mfa_should_serve_markdown(): bool {
     }
 
     // 2. .md suffix (sets the query var during rewrite resolution).
-    if ( 'markdown' === get_query_var( 'mfa_format' ) ) {
+    if ( 'markdown' === get_query_var( 'botkibble_format' ) ) {
         return true;
     }
 
     // 3. Accept header content negotiation.
-    if ( apply_filters( 'markdown_enable_accept_header', true ) ) {
+    if ( apply_filters( 'botkibble_enable_accept_header', true ) ) {
         if (
             isset( $_SERVER['HTTP_ACCEPT'] )
             && str_contains( sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT'] ) ), 'text/markdown' )
@@ -448,9 +448,9 @@ function mfa_should_serve_markdown(): bool {
  *
  * @return bool True if the request should be throttled (429).
  */
-function mfa_regen_throttled(): bool {
-    $key   = 'mfa_regen_count';
-    $limit = (int) apply_filters( 'mfa_regen_rate_limit', 20 );
+function botkibble_regen_throttled(): bool {
+    $key   = 'botkibble_regen_count';
+    $limit = (int) apply_filters( 'botkibble_regen_rate_limit', 20 );
     $count = (int) get_transient( $key );
 
     if ( $count >= $limit ) {
@@ -474,7 +474,7 @@ function mfa_regen_throttled(): bool {
  *    segment that could be a Windows device name or stream
  * 4. Reassemble from clean parts — the result is normalized
  */
-function mfa_sanitize_cache_slug( string $uri ): string {
+function botkibble_sanitize_cache_slug( string $uri ): string {
     // Null bytes — instant kill.
     if ( str_contains( $uri, "\0" ) ) {
         return '';
@@ -518,8 +518,8 @@ function mfa_sanitize_cache_slug( string $uri ): string {
 /**
  * Send the Content-Signal header if configured.
  */
-function mfa_send_content_signal_header( ?WP_Post $post = null ): void {
-    $signal = apply_filters( 'markdown_content_signal', 'ai-train=yes, search=yes, ai-input=yes', $post );
+function botkibble_send_content_signal_header( ?WP_Post $post = null ): void {
+    $signal = apply_filters( 'botkibble_content_signal', 'ai-train=yes, search=yes, ai-input=yes', $post );
     $signal = str_replace( [ "\r", "\n" ], '', $signal );
     if ( $signal ) {
         header( 'Content-Signal: ' . $signal );
@@ -529,11 +529,11 @@ function mfa_send_content_signal_header( ?WP_Post $post = null ): void {
 /**
  * Estimate the number of tokens from a word count.
  */
-function mfa_estimate_tokens( int $word_count ): int {
+function botkibble_estimate_tokens( int $word_count ): int {
     /**
      * Filter the token multiplier. Defaults to 1.3 (Cloudflare-style heuristic).
      */
-    $multiplier = apply_filters( 'markdown_token_multiplier', 1.3 );
+    $multiplier = apply_filters( 'botkibble_token_multiplier', 1.3 );
 
     return (int) ceil( $word_count * $multiplier );
 }
