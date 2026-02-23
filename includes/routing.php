@@ -336,12 +336,12 @@ add_action( 'save_post', 'botkibble_invalidate_cache' );
 add_action( 'before_delete_post', 'botkibble_invalidate_cache' );
 
 /** Invalidate front-page cache when the static front page setting changes. */
-add_action( 'update_option_page_on_front', function ( $old_value, $new_value ): void {
+add_action( 'update_option_page_on_front', function (): void {
     $upload_dir = wp_upload_dir();
     $cache_base = $upload_dir['basedir'] . '/botkibble-cache';
     $md_path    = $cache_base . '/_front-page.md';
     botkibble_delete_cache_files( $md_path );
-}, 10, 2 );
+} );
 
 /**
  * Invalidate the Markdown cache for a post and its children (if hierarchical).
