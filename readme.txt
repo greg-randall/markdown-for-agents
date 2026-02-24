@@ -22,6 +22,13 @@ Botkibble converts any published post or page on your WordPress site to Markdown
 * **Query parameter** — add `?format=markdown` to any post or page URL
 * **Content negotiation** — send `Accept: text/markdown` in the request header
 
+**Cache variants (optional):**
+
+You can persist alternate cached representations by adding `?botkibble_variant=slim` (or any other variant name).
+Variant caches are stored under:
+
+    /wp-content/uploads/botkibble-cache/_v/<variant>/<slug>.md
+
 **What you get:**
 
 * YAML frontmatter with title, date, categories, tags, `word_count`, `char_count`, and `tokens` (estimate)
@@ -154,6 +161,17 @@ Use the `botkibble_output` filter to append or modify the text after conversion:
     }, 10, 2 );
 
 = Can I disable the Accept header detection? =
+= Can I cache multiple Markdown variants (e.g. a slim version)? =
+
+Yes. Add `?botkibble_variant=slim` when requesting Markdown to generate and serve a separate cached file.
+
+To ensure your variants are invalidated on post updates, return them from the `botkibble_cache_variants` filter:
+
+    add_filter( 'botkibble_cache_variants', function ( $variants, $post ) {
+        $variants[] = 'slim';
+        return $variants;
+    }, 10, 2 );
+
 
 Yes, if you only want to serve Markdown via explicit URLs (.md or ?format=markdown), use the `botkibble_enable_accept_header` filter:
 

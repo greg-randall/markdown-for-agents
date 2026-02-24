@@ -18,6 +18,9 @@ This plugin implements origin-level Markdown serving, similar to Cloudflare's ed
   - **.md suffix** (e.g., `example.com/blog-post.md`)
   - **Query parameter** (e.g., `example.com/blog-post/?format=markdown`)
   - **Content Negotiation** (e.g., `Accept: text/markdown` header)
+- **Cache Variants (Optional):**
+  - Request alternate cached representations by adding `?botkibble_variant=slim` (or any other variant name).
+  - Variant caches are stored separately under `wp-content/uploads/botkibble-cache/_v/<variant>/...` to avoid collisions.
 - **Rich YAML Frontmatter:** Includes title, date, categories, tags, `word_count`, `char_count`, and an estimated `tokens` count.
 - **High-Performance Caching:** 
   - **Fast-Path Serving:** Bypasses the main WordPress query and template redirect for cached content.
@@ -69,10 +72,32 @@ The plugin is highly extensible via WordPress filters:
 | `botkibble_frontmatter` | Add or remove fields in the YAML block. |
 | `botkibble_clean_html` | Clean up HTML (remove specific divs/styles) before conversion. |
 | `botkibble_output` | Modify the final Markdown string before it's cached/served. |
+| `botkibble_cache_variant` | Override the cache variant for the current request (used with `?botkibble_variant=...`). |
+| `botkibble_cache_variants` | Return a list of cache variants to invalidate on post updates (e.g., `['slim']`). |
 | `botkibble_token_multiplier` | Adjust the word-to-token estimation (default `1.3`). |
 | `botkibble_regen_rate_limit` | Change the global regeneration rate limit (default `20/min`). |
 | `botkibble_content_signal` | Customize the `Content-Signal` header. |
 | `botkibble_enable_accept_header` | Toggle `Accept: text/markdown` detection. |
+
+### Cache Variants
+
+Botkibble can persist multiple cached Markdown representations for the same post without filename collisions.
+
+- **Default cache**: `wp-content/uploads/botkibble-cache/<slug>.md`
+- **Variant cache**: `wp-content/uploads/botkibble-cache/_v/<variant>/<slug>.md`
+
+Request a variant by adding the query param:
+
+- `?botkibble_variant=slim`
+
+To ensure variants are invalidated when posts change, return the list of variants you use:
+
+```php
+add_filter( 'botkibble_cache_variants', function ( $variants, $post ) {
+    $variants[] = 'slim';
+    return $variants;
+}, 10, 2 );
+```
 
 ### Example: Adding Custom Post Types
 ```php
