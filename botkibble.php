@@ -34,6 +34,7 @@ if ( ! file_exists( $botkibble_autoload ) ) {
 }
 
 require_once $botkibble_autoload;
+require_once BOTKIBBLE_PLUGIN_DIR . 'includes/cache.php';
 require_once BOTKIBBLE_PLUGIN_DIR . 'includes/routing.php';
 require_once BOTKIBBLE_PLUGIN_DIR . 'includes/converter.php';
 

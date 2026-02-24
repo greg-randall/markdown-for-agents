@@ -27,6 +27,7 @@ use Symfony\Component\Yaml\Yaml;
 function botkibble_convert_post( WP_Post $post ): array {
     $file_path = botkibble_get_cache_path( $post );
     $meta_path = botkibble_get_meta_path( $file_path );
+    $variant   = botkibble_get_cache_variant( $post );
 
     // Try the cache — handle the file vanishing between exists/filemtime and read.
     // Both filemtime() and strtotime() return UTC unix timestamps. Appending +00:00
@@ -83,6 +84,7 @@ function botkibble_convert_post( WP_Post $post ): array {
     botkibble_write_meta( $meta_path, [
         'post_id' => $post->ID,
         'type'    => $post->post_type,
+        'variant' => $variant,
         'tokens'  => $tokens,
         'length'  => strlen( $markdown ),
     ] );
@@ -99,12 +101,19 @@ function botkibble_convert_post( WP_Post $post ): array {
  * @param WP_Post $post The post to get the cache path for.
  * @return string Absolute filesystem path (e.g. /wp-content/uploads/botkibble-cache/my-post.md).
  */
-function botkibble_get_cache_path( WP_Post $post ): string {
-    $upload_dir = wp_upload_dir();
-    $base_dir   = $upload_dir['basedir'] . '/botkibble-cache';
-    $uri        = botkibble_get_post_uri( $post );
-    
-    return $base_dir . '/' . ltrim( $uri, '/' ) . '.md';
+function botkibble_get_cache_path( WP_Post $post, ?string $variant = null ): string {
+    $uri = botkibble_get_post_uri( $post );
+
+    // null means "use request variant"; empty string means default cache.
+    $variant = ( null === $variant ) ? botkibble_get_cache_variant( $post ) : botkibble_sanitize_cache_variant( $variant );
+
+    $safe_slug = botkibble_sanitize_cache_slug( $uri );
+    if ( '' === $safe_slug ) {
+        // Should not happen (URI comes from permalink), but fall back safely.
+        $safe_slug = ltrim( $uri, '/' );
+    }
+
+    return botkibble_cache_path_for_slug( $safe_slug, $variant );
 }
 
 /**

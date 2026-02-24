@@ -69,7 +69,8 @@ add_action( 'init', function (): void {
     // Construct the expected cache path and verify containment.
     $upload_dir = wp_upload_dir();
     $cache_base = $upload_dir['basedir'] . '/botkibble-cache';
-    $file_path  = $cache_base . '/' . $safe_slug . '.md';
+    $variant    = botkibble_get_cache_variant( null );
+    $file_path  = botkibble_cache_path_for_slug( $safe_slug, $variant );
 
     // Belt-and-suspenders: verify the final path is inside the cache directory.
     // Pure string check — no filesystem calls, no realpath cache issues.
@@ -395,8 +396,19 @@ add_action( 'before_delete_post', 'botkibble_invalidate_cache' );
 add_action( 'update_option_page_on_front', function (): void {
     $upload_dir = wp_upload_dir();
     $cache_base = $upload_dir['basedir'] . '/botkibble-cache';
-    $md_path    = $cache_base . '/_front-page.md';
-    botkibble_delete_cache_files( $md_path );
+    botkibble_delete_cache_files( $cache_base . '/_front-page.md' );
+
+    // Also invalidate configured variants for the front page.
+    $variants = apply_filters( 'botkibble_cache_variants', [], null );
+    if ( is_array( $variants ) && ! empty( $variants ) ) {
+        $variants = array_values( array_unique( array_filter( array_map( 'botkibble_sanitize_cache_variant', $variants ) ) ) );
+        foreach ( $variants as $v ) {
+            if ( '' === $v ) {
+                continue;
+            }
+            botkibble_delete_cache_files( $cache_base . '/_v/' . $v . '/_front-page.md' );
+        }
+    }
 } );
 
 /**
@@ -412,13 +424,41 @@ function botkibble_invalidate_cache( int $post_id ): void {
         return;
     }
 
-    botkibble_delete_cache_files( botkibble_get_cache_path( $post ) );
+    // Always invalidate the default cache.
+    botkibble_delete_cache_files( botkibble_get_cache_path( $post, '' ) );
+
+    /**
+     * Invalidate additional cache variants for this post.
+     *
+     * Return an array of variants (e.g. ['slim']).
+     *
+     * @param array<int, string> $variants Variants to invalidate.
+     * @param WP_Post            $post     The post being invalidated.
+     */
+    $variants = apply_filters( 'botkibble_cache_variants', [], $post );
+    if ( is_array( $variants ) && ! empty( $variants ) ) {
+        $variants = array_values( array_unique( array_filter( array_map( 'botkibble_sanitize_cache_variant', $variants ) ) ) );
+        foreach ( $variants as $v ) {
+            if ( '' === $v ) {
+                continue;
+            }
+            botkibble_delete_cache_files( botkibble_get_cache_path( $post, $v ) );
+        }
+    }
 
     // Hierarchical invalidation for pages.
     if ( is_post_type_hierarchical( $post->post_type ) ) {
         $children = get_pages( [ 'child_of' => $post_id, 'post_type' => $post->post_type ] );
         foreach ( $children as $child ) {
-            botkibble_delete_cache_files( botkibble_get_cache_path( $child ) );
+            botkibble_delete_cache_files( botkibble_get_cache_path( $child, '' ) );
+            if ( is_array( $variants ) && ! empty( $variants ) ) {
+                foreach ( $variants as $v ) {
+                    if ( '' === $v ) {
+                        continue;
+                    }
+                    botkibble_delete_cache_files( botkibble_get_cache_path( $child, $v ) );
+                }
+            }
         }
     }
 }
