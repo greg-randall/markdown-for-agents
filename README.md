@@ -47,6 +47,13 @@ For maximum performance, you can add a web server rule to serve the cached `.md`
 
 ### Nginx Configuration
 ```nginx
+# Cache Variants (direct serving)
+location ~* ^/(_v/[^/]+/.+)\.md$ {
+    default_type text/markdown;
+    try_files /wp-content/uploads/botkibble-cache/$1.md /index.php?$args;
+}
+
+# Default Cache
 location ~* ^/(.+)\.md$ {
     default_type text/markdown;
     try_files /wp-content/uploads/botkibble-cache/$1.md /index.php?$args;
@@ -57,9 +64,17 @@ location ~* ^/(.+)\.md$ {
 Add this before the WordPress rewrite rules:
 ```apache
 RewriteEngine On
+
+# Cache Variants (direct serving)
+RewriteCond %{DOCUMENT_ROOT}/wp-content/uploads/botkibble-cache/_v/$1/$2.md -f
+RewriteRule ^_v/([^/]+)/(.+)\.md$ /wp-content/uploads/botkibble-cache/_v/$1/$2.md [L,T=text/markdown]
+
+# Default Cache
 RewriteCond %{DOCUMENT_ROOT}/wp-content/uploads/botkibble-cache/$1.md -f
 RewriteRule ^(.*)\.md$ /wp-content/uploads/botkibble-cache/$1.md [L,T=text/markdown]
 ```
+
+**Note:** Serving `.md` files directly via Nginx or Apache bypasses PHP entirely. This means developer filters like `botkibble_output` will NOT run for cached requests served this way. The first request (the "cold" cache miss) will always run through PHP to generate the file.
 
 The first request for any post still goes through PHP to generate and cache the Markdown. After that, all subsequent requests are served as static files.
 

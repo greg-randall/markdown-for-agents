@@ -60,9 +60,16 @@ If you use Cloudflare, both share the same `Accept: text/markdown` header, `Cont
 This plugin supports static file offloading by writing Markdown content to `/wp-content/uploads/botkibble-cache/`. 
 
 === Nginx Configuration ===
-To bypass PHP entirely and have Nginx serve the files directly:
+To bypass PHP entirely and have Nginx serve the files (including variants) directly:
 
 `
+# Variants
+location ~* ^/(_v/[^/]+/.+)\.md$ {
+    default_type text/markdown;
+    try_files /wp-content/uploads/botkibble-cache/$1.md /index.php?$args;
+}
+
+# Default
 location ~* ^/(.+)\.md$ {
     default_type text/markdown;
     try_files /wp-content/uploads/botkibble-cache/$1.md /index.php?$args;
@@ -74,6 +81,11 @@ Add this to your `.htaccess` before the WordPress rules:
 
 `
 RewriteEngine On
+# Variants
+RewriteCond %{DOCUMENT_ROOT}/wp-content/uploads/botkibble-cache/_v/$1/$2.md -f
+RewriteRule ^_v/([^/]+)/(.+)\.md$ /wp-content/uploads/botkibble-cache/_v/$1/$2.md [L,T=text/markdown]
+
+# Default
 RewriteCond %{DOCUMENT_ROOT}/wp-content/uploads/botkibble-cache/$1.md -f
 RewriteRule ^(.*)\.md$ /wp-content/uploads/botkibble-cache/$1.md [L,T=text/markdown]
 `
@@ -168,18 +180,16 @@ Use the `botkibble_output` filter to append or modify the text after conversion:
         return $markdown . "\n\n---\nServed by Botkibble";
     }, 10, 2 );
 
-= Can I disable the Accept header detection? =
 = Can I cache multiple Markdown variants (e.g. a slim version)? =
 
-Yes. Add `?botkibble_variant=slim` when requesting Markdown to generate and serve a separate cached file.
-
-To ensure your variants are invalidated on post updates, return them from the `botkibble_cache_variants` filter:
+Yes. Add `?botkibble_variant=slim` when requesting Markdown to generate and serve a separate cached file. To ensure your variants are invalidated on post updates, return them from the `botkibble_cache_variants` filter:
 
     add_filter( 'botkibble_cache_variants', function ( $variants, $post ) {
         $variants[] = 'slim';
         return $variants;
     }, 10, 2 );
 
+= Can I disable the Accept header detection? =
 
 Yes, if you only want to serve Markdown via explicit URLs (.md or ?format=markdown), use the `botkibble_enable_accept_header` filter:
 
