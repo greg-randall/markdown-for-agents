@@ -27,9 +27,8 @@ Botkibble converts any published post or page on your WordPress site to Markdown
 * YAML frontmatter with title, date, categories, tags, `word_count`, `char_count`, and `tokens` (estimate)
 * Clean Markdown converted from the fully-rendered post HTML
 * `Content-Type: text/markdown` response header
-* `Content-Length` header for precise payload size
 * `Content-Signal` header (`ai-train`, `search`, `ai-input`)
-* `<link rel="alternate" type="text/markdown">` tag in `<head>` for discovery
+* Discovery via `<link rel="alternate">` tag (body) and HTTP `Link` header
 * Static file offloading with automatic invalidation on post update
 * Rate limiting for cache-miss regenerations (20 per minute by default)
 
@@ -145,6 +144,15 @@ Yes, use the `botkibble_clean_html` filter. This runs after the default cleanup 
         return $html;
     } );
 
+= How do I modify the body before metrics are calculated? =
+
+Use the `botkibble_body` filter. This is the best place to add content like ld+json that you want included in the word count and token estimation:
+
+    add_filter( 'botkibble_body', function ( $body, $post ) {
+        $json_ld = '<script type="application/ld+json">...</script>';
+        return $body . "\n\n" . $json_ld;
+    }, 10, 2 );
+
 = How do I modify the final Markdown output? =
 
 Use the `botkibble_output` filter to append or modify the text after conversion:
@@ -170,11 +178,11 @@ They return a `403 Forbidden` response. There's no point serving a password form
 = What are the response headers? =
 
 * `Content-Type: text/markdown; charset=utf-8`
-* `Content-Length: <bytes>` — standard payload size
 * `Vary: Accept` — tells caches that responses vary by Accept header
 * `X-Markdown-Tokens: <count>` — estimated token count (word_count × 1.3)
 * `X-Robots-Tag: noindex` — prevents search engines from indexing the Markdown version
 * `Link: <url>; rel="canonical"` — points search engines to the original HTML post
+* `Link: <url>; rel="alternate"` — advertises the Markdown version for discovery
 * `Content-Signal: ai-train=yes, search=yes, ai-input=yes` — see [contentsignals.org](https://contentsignals.org/)
 
 == Changelog ==

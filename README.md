@@ -25,6 +25,7 @@ This plugin implements origin-level Markdown serving, similar to Cloudflare's ed
 - **SEO & Security:**
   - Sends `X-Robots-Tag: noindex` to prevent Markdown versions from appearing in search results.
   - Sends `Link: <url>; rel="canonical"` to point search engines back to the HTML version.
+  - Automates discovery via `<link rel="alternate">` tags (body) and HTTP `Link` headers.
   - Rate limits cache-miss regenerations to mitigate DOS attacks.
   - Blocks access to drafts, private posts, and password-protected content.
 
@@ -68,6 +69,7 @@ The plugin is highly extensible via WordPress filters:
 | `botkibble_served_post_types` | Add custom post types (e.g., `docs`, `product`). |
 | `botkibble_frontmatter` | Add or remove fields in the YAML block. |
 | `botkibble_clean_html` | Clean up HTML (remove specific divs/styles) before conversion. |
+| `botkibble_body` | Modify the Markdown body before metrics calculation (useful for adding content like ld+json). |
 | `botkibble_output` | Modify the final Markdown string before it's cached/served. |
 | `botkibble_token_multiplier` | Adjust the word-to-token estimation (default `1.3`). |
 | `botkibble_regen_rate_limit` | Change the global regeneration rate limit (default `20/min`). |
