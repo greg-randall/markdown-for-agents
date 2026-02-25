@@ -153,6 +153,10 @@ Measured across 10 posts on a shared hosting environment (TTFB, 5 requests per c
 - **MD (cached)** — Subsequent requests served by the PHP Fast-Path from disk cache
 - **Apache direct** — Static `.md` file served by Apache rewrite rule, bypassing PHP entirely
 
+## Credits
+
+We thank Cristi Constantin ([https://github.com/cristi-constantin](https://github.com/cristi-constantin)) for contributing cache variants, URL and SEO improvements, and fixing important bugs.
+
 ## License
 
 This project is licensed under the GPL-2.0 License.

@@ -213,6 +213,10 @@ They return a `403 Forbidden` response. There's no point serving a password form
 * `Link: <url>; rel="alternate"` — advertises the Markdown version for discovery
 * `Content-Signal: ai-train=yes, search=yes, ai-input=yes` — see [contentsignals.org](https://contentsignals.org/)
 
+== Credits ==
+
+We thank Cristi Constantin (https://github.com/cristi-constantin) for contributing cache variants, URL and SEO improvements, and fixing important bugs.
+
 == Changelog ==
 
 = 1.2.1 =
