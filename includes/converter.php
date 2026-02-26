@@ -311,16 +311,69 @@ function botkibble_render_body( WP_Post $post ): array {
 
     static $converter = null;
     if ( null === $converter ) {
-        $converter = new HtmlConverter( [
+        $converter_options = [
             'strip_tags' => true,
             'hard_break' => true,
-        ] );
+        ];
+
+        /**
+         * Optional: remove entire DOM node types before conversion.
+         *
+         * Keep this empty by default to preserve legacy behavior.
+         * Example return values:
+         * - array: [ 'script', 'style' ]
+         * - string: 'script style'
+         *
+         * @param array<int, string>|string $remove_nodes Requested node names.
+         * @param WP_Post                   $post         Current post being rendered.
+         */
+        $remove_nodes = apply_filters( 'botkibble_converter_remove_nodes', [], $post );
+        $remove_nodes = botkibble_normalize_remove_nodes( $remove_nodes );
+        if ( ! empty( $remove_nodes ) ) {
+            $converter_options['remove_nodes'] = implode( ' ', $remove_nodes );
+        }
+
+        $converter = new HtmlConverter( $converter_options );
     }
 
     return [
         'markdown'   => $converter->convert( $html ),
         'word_count' => $word_count,
     ];
+}
+
+/**
+ * Normalize a converter remove_nodes value into a clean list of tag names.
+ *
+ * Accepts either a string (space/comma-separated) or an array of values and
+ * returns unique lowercase tag names safe to pass to HtmlConverter.
+ *
+ * @param array<int, mixed>|string $nodes Raw filter value.
+ * @return array<int, string>
+ */
+function botkibble_normalize_remove_nodes( $nodes ): array {
+    if ( is_string( $nodes ) ) {
+        $nodes = preg_split( '/[\s,]+/', $nodes ) ?: [];
+    } elseif ( ! is_array( $nodes ) ) {
+        return [];
+    }
+
+    $out = [];
+    foreach ( $nodes as $node ) {
+        $name = strtolower( trim( (string) $node ) );
+        if ( '' === $name ) {
+            continue;
+        }
+
+        // Keep DOM-like node names only (e.g. script, style, iframe).
+        if ( ! preg_match( '/^[a-z][a-z0-9:_-]*$/', $name ) ) {
+            continue;
+        }
+
+        $out[ $name ] = true;
+    }
+
+    return array_keys( $out );
 }
 
 /* --------------------------------------------------------------------------

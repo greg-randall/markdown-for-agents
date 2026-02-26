@@ -87,6 +87,7 @@ The plugin is highly extensible via WordPress filters:
 | `botkibble_served_post_types` | Add custom post types (e.g., `docs`, `product`). |
 | `botkibble_frontmatter` | Add or remove fields in the YAML block. |
 | `botkibble_clean_html` | Clean up HTML (remove specific divs/styles) before conversion. |
+| `botkibble_converter_remove_nodes` | Opt in to removing full HTML node types in converter (e.g., `script`). |
 | `botkibble_body` | Modify the Markdown body before metrics calculation (useful for adding content like ld+json). |
 | `botkibble_output` | Modify the final Markdown string before it's cached/served. |
 | `botkibble_cache_variant` | Override the cache variant for the current request (used with `?botkibble_variant=...`). |
@@ -123,6 +124,23 @@ add_filter( 'botkibble_served_post_types', function ( $types ) {
     return $types;
 } );
 ```
+
+### Example: Opt In To Script Node Removal (JSON-LD Safe)
+
+By default, Botkibble does not set converter `remove_nodes`, preserving legacy behavior.
+If you want to strip remaining scripts at conversion time, opt in with:
+
+```php
+add_filter( 'botkibble_converter_remove_nodes', function ( $nodes ) {
+    $nodes = is_array( $nodes ) ? $nodes : [];
+    $nodes[] = 'script';
+    return $nodes;
+} );
+```
+
+If your site needs JSON-LD from content HTML, extract it first with `botkibble_clean_html`
+and remove only `application/ld+json` blocks there. The converter-level `script` removal
+then acts as a final safety net for other scripts.
 
 ## Requirements
 
