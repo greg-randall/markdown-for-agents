@@ -31,7 +31,7 @@ Cloudflare offers [Markdown for Agents](https://developers.cloudflare.com/fundam
 * Structured metadata header with title, date, categories, tags, word count, character count, and estimated token count (in YAML frontmatter format, readable by any AI agent)
 * Clean Markdown converted from fully-rendered post HTML (shortcodes run, filters applied)
 * `Content-Type: text/markdown` and `Vary: Accept` response headers
-* `Content-Signal` header for AI signal declaration (`ai-train`, `search`, `ai-input`) — see [contentsignals.org](https://contentsignals.org/)
+* `Content-Signal` header for AI signal declaration — defaults to `ai-train=no, search=yes, ai-input=yes` — see [contentsignals.org](https://contentsignals.org/)
 * `X-Markdown-Tokens` header with estimated token count
 * Discovery via `<link rel="alternate">` in the HTML head and `Link` HTTP header
 * Automatic cache invalidation when a post is updated or deleted
@@ -90,6 +90,8 @@ Cloudflare now offers [Markdown for Agents](https://developers.cloudflare.com/fu
 This plugin does the same thing at the origin, so it works on any host. It also adds `.md` suffix URLs, `?format=markdown` query parameters, YAML frontmatter, static file caching, and server-level offloading.
 
 If you use Cloudflare, both share the same `Accept: text/markdown` header, `Content-Signal` headers, and `X-Markdown-Tokens` response headers.
+
+One difference worth knowing: Cloudflare's implementation currently defaults to `Content-Signal: ai-train=yes, search=yes, ai-input=yes` with no way to change it. Botkibble defaults to `ai-train=no, search=yes, ai-input=yes` — opting out of AI training by default — and lets you customize the signal per site via the `botkibble_content_signal` filter.
 
 == Performance & Static Offloading ==
 
@@ -258,7 +260,7 @@ They return a `403 Forbidden` response. There's no point serving a password form
 * `X-Robots-Tag: noindex` — prevents search engines from indexing the Markdown version
 * `Link: <url>; rel="canonical"` — points search engines to the original HTML post
 * `Link: <url>; rel="alternate"` — advertises the Markdown version for discovery
-* `Content-Signal: ai-train=yes, search=yes, ai-input=yes` — see [contentsignals.org](https://contentsignals.org/)
+* `Content-Signal: ai-train=no, search=yes, ai-input=yes` — see [contentsignals.org](https://contentsignals.org/)
 
 == Credits ==
 
