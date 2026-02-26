@@ -8,13 +8,13 @@ Stable tag: 1.2.1
 License: GPL-2.0-only
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Make your WordPress content AI-ready. Every post and page served as clean Markdown — no config, no API keys, activate, and go.
+Serves every published post and page as Markdown for AI agents and crawlers. No configuration, no API keys. Activate and it works.
 
 == Description ==
 
-AI agents, LLMs, and crawlers have to wade through navigation bars, sidebars, ads, and comment forms just to get to the content they actually want — and every one of those elements costs tokens. [Cloudflare measured](https://blog.cloudflare.com/markdown-for-agents/) an **80% reduction in token usage** when converting a blog post from HTML to Markdown (16,180 tokens down to 3,150). Less noise means faster, cheaper AI access to your content.
+AI agents, LLMs, and crawlers have to wade through navigation bars, sidebars, ads, and comment forms to reach the content they want, and every element costs tokens. [Cloudflare measured](https://blog.cloudflare.com/markdown-for-agents/) an 80% reduction in token usage when converting a blog post from HTML to Markdown (16,180 tokens down to 3,150).
 
-Botkibble adds a Markdown endpoint to every published post and page on your site. Activate it and your content is immediately available to any agent that asks for it.
+Botkibble adds a Markdown endpoint to every published post and page.
 
 Cloudflare offers [Markdown for Agents](https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/) at the CDN edge on Pro, Business, and Enterprise plans. Botkibble does the same thing (for free) at the origin, so it works on any host.
 
@@ -22,9 +22,9 @@ Cloudflare offers [Markdown for Agents](https://developers.cloudflare.com/fundam
 
 **Three ways to request Markdown:**
 
-* **`.md` suffix** — append `.md` to any post or page URL (e.g. `example.com/my-post.md`)
-* **Query parameter** — add `?format=markdown` to any post or page URL
-* **Content negotiation** — send `Accept: text/markdown` in the request header
+* **`.md` suffix**: append `.md` to any post or page URL (e.g. `example.com/my-post.md`)
+* **Query parameter**: add `?format=markdown` to any post or page URL
+* **Content negotiation**: send `Accept: text/markdown` in the request header
 
 **What's in every response:**
 
@@ -38,7 +38,7 @@ Cloudflare offers [Markdown for Agents](https://developers.cloudflare.com/fundam
 
 **Performance:**
 
-Botkibble writes Markdown to disk on the first request, then serves it as a static file. A built-in Fast-Path serves cached files during WordPress's `init` hook, before the main database query runs — no extra configuration needed.
+Botkibble writes Markdown to disk on the first request, then serves it as a static file. A built-in Fast-Path serves cached files during WordPress's `init` hook, before the main database query runs. No extra configuration needed.
 
 Add a web server rewrite rule and Botkibble bypasses PHP entirely, serving `.md` files the same way a server would serve an image or CSS file:
 
@@ -65,21 +65,11 @@ Variant caches are stored under:
 
     /wp-content/uploads/botkibble/_v/<variant>/<slug>.md
 
-**What you get:**
-
-* YAML frontmatter with title, date, categories, tags, `word_count`, `char_count`, and `tokens` (estimate)
-* Clean Markdown converted from the fully-rendered post HTML
-* `Content-Type: text/markdown` response header
-* `Content-Signal` header (`ai-train`, `search`, `ai-input`)
-* Discovery via `<link rel="alternate">` tag (body) and HTTP `Link` header
-* Static file offloading with automatic invalidation on post update
-* Rate limiting for cache-miss regenerations (20 per minute by default)
-
 **What it does NOT do:**
 
 * Expose drafts, private posts, or password-protected content
 * Serve non-post/page content types by default
-* Require any configuration — activate it and it works
+* Require any configuration. Activate and it works.
 
 == Why Markdown? ==
 
@@ -91,7 +81,7 @@ This plugin does the same thing at the origin, so it works on any host. It also 
 
 If you use Cloudflare, both share the same `Accept: text/markdown` header, `Content-Signal` headers, and `X-Markdown-Tokens` response headers.
 
-One difference worth knowing: Cloudflare's implementation currently defaults to `Content-Signal: ai-train=yes, search=yes, ai-input=yes` with no way to change it. Botkibble defaults to `ai-train=no, search=yes, ai-input=yes` — opting out of AI training by default — and lets you customize the signal per site via the `botkibble_content_signal` filter.
+Cloudflare currently defaults to `Content-Signal: ai-train=yes, search=yes, ai-input=yes` with no way to change it. Botkibble defaults to `ai-train=no` and lets you override the full signal per site via the `botkibble_content_signal` filter.
 
 == Performance & Static Offloading ==
 
@@ -154,7 +144,7 @@ The plugin only serves posts and pages by default. To add a custom post type, us
         return $types;
     } );
 
-Be careful — only add post types that contain public content. Do not expose post types that may contain private or sensitive data (e.g. WooCommerce orders).
+Be careful. Only add post types that contain public content. Do not expose post types that may contain private or sensitive data (e.g. WooCommerce orders).
 
 = How do I add custom fields to the frontmatter? =
 
