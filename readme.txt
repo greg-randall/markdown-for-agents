@@ -146,6 +146,35 @@ The plugin only serves posts and pages by default. To add a custom post type, us
 
 Be careful. Only add post types that contain public content. Do not expose post types that may contain private or sensitive data (e.g. WooCommerce orders).
 
+= What does the YAML frontmatter include? =
+
+Every response starts with a YAML block containing:
+
+* `title` — the post title
+* `date` — publish date in ISO 8601 format
+* `type` — post type (e.g. `post`, `page`)
+* `word_count` — word count of the Markdown body
+* `char_count` — character count of the Markdown body
+* `tokens` — estimated token count (word_count × 1.3)
+* `categories` — array of category names (posts only)
+* `tags` — array of tag names (posts only, omitted if none)
+
+Example:
+
+    ---
+    title: My Post Title
+    date: '2025-06-01T12:00:00+00:00'
+    type: post
+    word_count: 842
+    char_count: 4981
+    tokens: 1095
+    categories:
+      - Technology
+    tags:
+      - wordpress
+      - markdown
+    ---
+
 = How do I add custom fields to the frontmatter? =
 
 Use the `botkibble_frontmatter` filter:
