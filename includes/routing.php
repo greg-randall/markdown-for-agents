@@ -654,7 +654,7 @@ function botkibble_sanitize_cache_slug( string $uri ): string {
  * Send the Content-Signal header if configured.
  */
 function botkibble_send_content_signal_header( ?WP_Post $post = null ): void {
-    $signal = apply_filters( 'botkibble_content_signal', 'ai-train=yes, search=yes, ai-input=yes', $post );
+    $signal = apply_filters( 'botkibble_content_signal', 'ai-train=no, search=yes, ai-input=yes', $post );
     $signal = str_replace( [ "\r", "\n" ], '', $signal );
     if ( $signal ) {
         header( 'Content-Signal: ' . $signal );
