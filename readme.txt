@@ -4,7 +4,7 @@ Tags: markdown, ai, agents, crawlers, api
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.2
-Stable tag: 1.2.1
+Stable tag: 1.3.0
 License: GPL-2.0-only
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -286,6 +286,10 @@ They return a `403 Forbidden` response. There's no point serving a password form
 We thank Cristi Constantin (https://github.com/cristi-constantin) for contributing cache variants, URL and SEO improvements, and fixing important bugs.
 
 == Changelog ==
+
+= 1.3.0 =
+* Changed default Content-Signal from ai-train=yes to ai-train=no (opt-out of AI training by default).
+* Added botkibble_converter_remove_nodes filter for opt-in HTML node stripping during conversion.
 
 = 1.2.1 =
 * Changed cache directory from /uploads/botkibble-cache/ to /uploads/botkibble/ per plugin guidelines.

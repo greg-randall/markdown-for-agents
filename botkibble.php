@@ -3,7 +3,7 @@
  * Plugin Name: Botkibble
  * Plugin URI:  https://github.com/greg-randall/botkibble
  * Description: Serve published posts and pages as clean Markdown for AI agents and crawlers.
- * Version:     1.2.1
+ * Version:     1.3.0
  * Requires at least: 6.0
  * Requires PHP: 8.2
  * Author:      Greg Randall
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'BOTKIBBLE_VERSION', '1.2.1' );
+define( 'BOTKIBBLE_VERSION', '1.3.0' );
 define( 'BOTKIBBLE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 
 // Require Composer autoloader.
